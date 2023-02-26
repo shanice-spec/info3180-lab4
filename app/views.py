@@ -1,6 +1,6 @@
 import os
 from app import app, db, login_manager
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from app.models import UserProfile
@@ -65,6 +65,9 @@ def login():
             flash('Logged in successfully.', 'success')
             # Remember to flash a message to the user
             return redirect(url_for("upload"))  # The user should be redirected to the upload form instead
+        else:
+             flash('Username or Password is incorrect.', 'danger')
+    flash_errors(form)
     return render_template("login.html", form=form)
 
 # user_loader callback. This callback is used to reload the user object from
@@ -76,6 +79,23 @@ def load_user(id):
 ###
 # The functions below should be applicable to all Flask apps.
 ###
+def get_uploaded_images():
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', './upload')
+    images = []
+    for filename in os.listdir(UPLOAD_FOLDER):
+        if filename.endswith('.jpg') or filename.endswith('.png'):
+            images.append(filename)
+    return images
+
+@app.route('/upload/<filename>')
+def get_image(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
+
+@app.route('/files')
+@login_required
+def files():
+    image_files = get_uploaded_images()
+    return render_template('files.html', image_files=image_files)
 
 # Flash errors from the form if validation fails
 def flash_errors(form):
